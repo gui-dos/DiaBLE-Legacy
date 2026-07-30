@@ -412,6 +412,7 @@ extension String {
     var lastPatchStatusEvent: PatchStatusEvent?
     var eventLog = [EventLogEvent]()
 
+
     func parsePatchInfo() {
 
         let productType = Int(patchInfo[12])
@@ -486,6 +487,7 @@ extension String {
             currentControlCommand = cmd
         }
     }
+
 
     func parsePackets(_ data: Data) -> (Data, String) {
         var payload = Data()
@@ -872,6 +874,7 @@ extension String {
 
     }
 
+
     func parsePatchStatus(data: Data) {
         let eventLifeCount = UInt16(data[0...1])
         let eventDate = Date(timeIntervalSince1970: Double(activationTime + UInt32(eventLifeCount) * 60))
@@ -1035,13 +1038,13 @@ extension String {
         for event in eventLog {
             msg += "\n\(event.index). \(event.lifeCount.hex) \(Date(timeIntervalSince1970: Double(activationTime + UInt32(event.lifeCount) * 60)).local)\n"
             // TODO:
-            let eventDescription: [UInt16: String] = [
+            let eventDescriptions: [UInt16: String] = [
                 0x0D: "Reactivation (new BLE PIN)"
             ]
             if var state = Libre3.State(rawValue: UInt8(event.eventData))?.description {
                 if state == "Insertion failed" { state = "Warming up" }  // TODO: state 3 error
                 msg += "   \(event.eventData.hex): \(state)"
-            } else if let eventDescription = eventDescription[event.eventData] {
+            } else if let eventDescription = eventDescriptions[event.eventData] {
                 msg += "   \(event.eventData.hex): \(eventDescription)"
             } else {
                 msg += "   \(event.eventData.hex)"

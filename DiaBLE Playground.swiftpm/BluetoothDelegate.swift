@@ -125,21 +125,21 @@ class BluetoothDelegate: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
             }
         }
 
-        let identifier = peripheral.identifier
+        let identifier = peripheral.identifier.uuidString
         let deviceIsConnectable = advertisement[CBAdvertisementDataIsConnectable] as? Int ?? 1 != 0
         var deviceIsIgnored = false
         var msg = "Bluetooth: \(name!)'s device identifier \(identifier)"
-        if knownDevices[identifier.uuidString] == nil {
+        if knownDevices[identifier] == nil {
             msg += " not yet known"
-            knownDevices[identifier.uuidString] = (name!.contains("unnamed") ? name! : peripheral.name!, peripheral, advertisement, deviceIsConnectable, deviceIsIgnored)
+            knownDevices[identifier] = (name!.contains("unnamed") ? name! : peripheral.name!, peripheral, advertisement, deviceIsConnectable, deviceIsIgnored)
             if settings.userLevel > .basic {
                 msg += " (advertised data: \(advertisement)\(BLE.companies[companyId].name != "< Unknown >" ? ", company: \(BLE.companies[companyId].name)" : ""))"
             }
         } else {
             msg += " already known"
-            deviceIsIgnored = knownDevices[identifier.uuidString]!.isIgnored
+            deviceIsIgnored = knownDevices[identifier]!.isIgnored
         }
-        debugLog("\(msg)")
+        debugLog(msg)
 
         if !deviceIsConnectable
             || deviceIsIgnored
@@ -263,7 +263,8 @@ class BluetoothDelegate: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
 
     public func centralManager(_ manager: CBCentralManager, didConnect peripheral: CBPeripheral) {
         let name = peripheral.name ?? "an unnamed peripheral"
-        var msg = "Bluetooth: \(name) has \(app.device.characteristics.isEmpty ? "connected" : "reconnected")"
+        let identifier = peripheral.identifier.uuidString
+        var msg = "Bluetooth: \(name) has \(identifier != app.device.peripheral?.identifier.uuidString ? "connected" : "reconnected") (identifier: \(identifier))"
         app.device.state = peripheral.state
         app.deviceState = app.device.state.description.capitalized
         app.device.lastConnectionDate = Date()
@@ -276,6 +277,13 @@ class BluetoothDelegate: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
         //     ]
         // )
         // log("Bluetooth: registerForConnectionEvents: options: [\(CBConnectPeripheralOptionEnableAutoReconnect): true, .peripheralUUIDs: [\(peripheral.identifier)])")
+        if identifier == app.device.peripheral?.identifier.uuidString {
+            let knownCharacteristics = app.device.characteristics
+            if knownCharacteristics.count > 0 {
+                debugLog("Bluetooth: \(name)'s known characteristics: \(knownCharacteristics.debugDescription)")
+                // TODO: skip redescovering
+            }
+        }
         msg += ("; discovering services")
         peripheral.discoverServices(nil)
         main.status("\(app.device.name)")
